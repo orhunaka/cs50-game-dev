@@ -1,6 +1,12 @@
 -- https://github.com/Ulydev/push
 push = require 'push'
 
+-- https://github.com/vrld/hump/blob/master/class.lua
+Class = require 'class'
+
+require 'Paddle'
+require 'Ball'
+
 WINDOW_WIDTH = 1280
 WINDOW_HEIGHT = 720
 
@@ -13,6 +19,8 @@ function love.load()
 
     -- Sets the graphics of the game
     love.graphics.setDefaultFilter('nearest', 'nearest')
+    -- "seed" the rng so that calls to random are always random
+    math.randomseed(os.time())
     -- Set the font
     smallFont = love.graphics.newFont('font.ttf', 8)
     -- Set the font, larger for the score
@@ -29,24 +37,37 @@ function love.load()
     player1Score = 0
     player2Score = 0
 
-    player1Y = 30
-    player2Y = VIRTUAL_HEIGHT - 50
+    -- creating the paddles from the classes
+    player1 = Paddle(10, 30, 5, 20)
+    player2 = Paddle(VIRTUAL_WIDTH - 10, VIRTUAL_HEIGHT - 30, 5, 20)
+
+    -- creating the ball from the class
+    ball = Ball(VIRTUAL_WIDTH / 2 - 2, VIRTUAL_HEIGHT / 2 - 2, 4, 4)
+
+    gameState = 'start'
 end
 
 function love.update(dt)
     -- player 1 movement
     if love.keyboard.isDown('w') then
-        player1Y = player1Y + -PADDLE_SPEED * dt
+        player1.dy = -PADDLE_SPEED
     elseif love.keyboard.isDown('s') then
-        player1Y = player1Y + PADDLE_SPEED * dt
+        player.dy = PADDLE_SPEED
     end
 
     -- player 2 movement
     if love.keyboard.isDown('up') then
-        player2Y = player2Y + -PADDLE_SPEED * dt
+        player2.dy = -PADDLE_SPEED
     elseif love.keyboard.isDown('down') then
-        player2Y = player2Y + PADDLE_SPEED * dt
+        player2.dy = PADDLE_SPEED
     end
+
+    if gameState == 'play' then
+        ball:update(dt)
+    end
+
+    player1:update(dt)
+    player2:update(dt)
 end
 
 function love.keypressed(key)
@@ -54,13 +75,23 @@ function love.keypressed(key)
     if key == 'escape' then
         -- function LÖVE gives us to terminate application
         love.event.quit()
+    elseif key == 'enter' or key == 'return' then
+        if gameState == 'start' then
+            gameState = 'play'
+        else
+            gameState = 'start'
+
+            ball:reset()
+        end
     end
 end
 
 function love.draw()
 
+    -- start rendering at virtual resolution
     push:apply('start')
 
+    -- setting the background color
     love.graphics.clear(40/255, 45/255, 52/255, 255/255)
 
     love.graphics.setFont(smallFont)
@@ -72,11 +103,11 @@ function love.draw()
     love.graphics.print(tostring(player2Score), VIRTUAL_WIDTH / 2 + 30, VIRTUAL_HEIGHT / 3)
 
     -- drawing the first paddle (Left side)
-    love.graphics.rectangle('fill', 10, player1Y, 5, 20)
     -- drawing the second paddle (right side)
-    love.graphics.rectangle('fill', VIRTUAL_WIDTH - 15, player2Y, 5, 20)
     -- drawing the ball
-    love.graphics.rectangle('fill', VIRTUAL_WIDTH / 2 - 2, VIRTUAL_HEIGHT / 2 - 2, 4, 4)
+    player1:render()
+    player2:render()
+    ball:render()
 
     -- end rendering at virtual resolution
     push:apply('end')
